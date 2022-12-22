@@ -5,6 +5,7 @@ import time
 from prometheus_client import start_http_server, Gauge, Enum, Counter
 import psutil
 import requests
+import subprocess
 
 class xrootd_exporter:
     """
@@ -13,15 +14,14 @@ class xrootd_exporter:
     """
 
     def __init__(self, port=9090, polling_interval_seconds=5):
+        """Rlaceholder for metrics to collect"""
         self.port = port
         self.polling_interval_seconds = polling_interval_seconds
 
-        # Prometheus metrics to collect
-        self.current_requests = Gauge("exporter_requests_current", "Current requests")
-        self.pending_requests = Gauge("exporter_requests_pending", "Pending requests")
-        self.total_uptime = Gauge("exporter_uptime", "Uptime")
-        self.health = Enum("exporter_health", "Health", states=["healthy", "unhealthy"])
-        self.xrootd_state={ "pid": Gauge("pid_running","XRootD running")}
+        self.xrootd_state={
+            "pid":           Gauge("pid_running","XRootD running"),\
+            "service_state": Enum("service_state","State", states=["active", "inactive","activating","deactivating","failed","dead"]),\
+            "service_up":    Gauge("service_up","checks if the service is up")}
 
     def run_metrics_loop(self):
         """Metrics fetching loop"""
@@ -30,13 +30,19 @@ class xrootd_exporter:
             self.fetch()
             time.sleep(self.polling_interval_seconds)
 
+    def myrun(self, cmd ):
+        result=subprocess.run(cmd.split(' '),stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return str(result.stdout,'utf-8').rstrip()
+
+
     def fetch(self):
         """
         Get metrics from application and refresh Prometheus metrics with
         new values.
         """
-
-        self.xrootd_state['pid'].set(0)
+        self.xrootd_state['pid'].set(1)
+        ss=self.myrun("systemctl show --property ActiveState --value xrootd@1.service")
+        self.xrootd_state['service_state'].state(ss)
 
 def main():
     """Main entry point"""
