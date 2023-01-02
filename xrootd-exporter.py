@@ -19,9 +19,10 @@ class xrootd_exporter:
         self.polling_interval_seconds = polling_interval_seconds
 
         self.xrootd_state={
-            "pid":           Gauge("pid_running","XRootD running"),\
-            "service_state": Enum("service_state","State", states=["active", "inactive","activating","deactivating","failed","dead"]),\
-            "service_up":    Gauge("service_up","checks if the service is up")}
+            "pid":           Gauge("pid_running","XRootD PID"),\
+            "service_state": Enum("service_state","Service State", states=["active", "inactive","activating","deactivating","failed","dead"]),\
+            "service_up":    Gauge("service_up","checks if the service is up"),
+            "inodes":        Gauge("nr_inodes","number of inodes") }
 
     def run_metrics_loop(self):
         """Metrics fetching loop"""
@@ -34,15 +35,20 @@ class xrootd_exporter:
         result=subprocess.run(cmd.split(' '),stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return str(result.stdout,'utf-8').rstrip()
 
+    def systemctl_property(self,prop="MainPID"):
+        return self.myrun(f"systemctl show --property {prop} --value xrootd@1.service")
+
 
     def fetch(self):
         """
         Get metrics from application and refresh Prometheus metrics with
         new values.
         """
-        self.xrootd_state['pid'].set(1)
-        ss=self.myrun("systemctl show --property ActiveState --value xrootd@1.service")
-        self.xrootd_state['service_state'].state(ss)
+        pid=self.systemctl_property('MainPID')
+        self.xrootd_state['pid'].set(pid)
+        self.xrootd_state['service_state'].state(self.systemctl_property('ActiveState'))
+        f=len(self.myrun(f"ls -la /proc/{pid}/fd/").split('\n'))
+        self.xrootd_state['inodes'].set(f)
 
 def main():
     """Main entry point"""
