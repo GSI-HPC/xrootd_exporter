@@ -47,8 +47,7 @@ class xrootd_exporter:
         pid=self.systemctl_property('MainPID')
         self.xrootd_state['pid'].set(pid)
         self.xrootd_state['service_state'].state(self.systemctl_property('ActiveState'))
-        f=len(self.myrun(f"ls -la /proc/{pid}/fd/").split('\n'))
-        self.xrootd_state['inodes'].set(f)
+        self.xrootd_state['inodes'].set(len(self.myrun(f"ls -la /proc/{pid}/fd/").split('\n')))
 
 def main():
     """Main entry point"""
