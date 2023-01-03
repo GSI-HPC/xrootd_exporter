@@ -12,11 +12,19 @@ class xrootd_exporter:
     Representation of Prometheus metrics and loop to fetch and transform
     application metrics into Prometheus metrics.
     """
+    def fetch_mpxstat(self):
+        lines=[]
+        while not lines or lines[-1]!="":
+            line = self.mpx.stdout.readline()
+            lines.append(line.decode('utf-8').rstrip())
+        self.mpx_stats={l.split(' ')[0] : l.split(' ')[1] for l in lines[:-1:]}
 
     def __init__(self, port=9090, polling_interval_seconds=5):
         """Rlaceholder for metrics to collect"""
+        self.mpx_stats={}
         self.port = port
         self.polling_interval_seconds = polling_interval_seconds
+        self.mpx=subprocess.Popen('/usr/local/bin/mpxstats -f flat -p 10024'.split(' '),stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         self.xrootd_state={
             "pid":           Gauge("pid_running","XRootD PID"),\
@@ -28,8 +36,11 @@ class xrootd_exporter:
         """Metrics fetching loop"""
 
         while True:
+            start=time.time()
+            while ((time.time() - start) < self.polling_interval_seconds):
+                self.fetch_mpxstat()
+                print(self.mpx_stats)
             self.fetch()
-            time.sleep(self.polling_interval_seconds)
 
     def myrun(self, cmd ):
         result=subprocess.run(cmd.split(' '),stdout=subprocess.PIPE, stderr=subprocess.PIPE)
