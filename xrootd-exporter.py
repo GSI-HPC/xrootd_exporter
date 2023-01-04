@@ -1,78 +1,74 @@
 """xrootd exporter"""
 
 import os
-import time
-from prometheus_client import start_http_server, Gauge, Enum, Counter
-import psutil
-import requests
-import subprocess
+from prometheus_client import start_http_server, Gauge, Info
+from subprocess import Popen, run, PIPE
 
 class xrootd_exporter:
     """
-    Representation of Prometheus metrics and loop to fetch and transform
-    application metrics into Prometheus metrics.
+    Encapsulates all metrics exported by XRootD via the mpxstats tool and transforms them into Prometheus metrics.
     """
+
     def fetch_mpxstat(self):
-        lines=[]
-        while not lines or lines[-1]!="":
-            line = self.mpx.stdout.readline()
-            lines.append(line.decode('utf-8').rstrip())
-        self.mpx_stats={l.split(' ')[0] : l.split(' ')[1] for l in lines[:-1:]}
+        """Reads the output stream of the mpx process into mpx_stats"""
+        read_line=lambda:self.mpx.stdout.readline().decode('utf-8').rstrip()
+        line=read_line() 
+        while line != "":
+            k,v=line.split(' ')
+            self.mpx_stats[k]=v
+            line=read_line() 
 
-    def __init__(self, port=9090, polling_interval_seconds=5):
-        """Rlaceholder for metrics to collect"""
+    def create_gauge(self,name,desc,fx):
+        """Shorthand function to create a gauge with value bound by a given a function"""
+        g=Gauge(name,desc)
+        g.set_function(fx)
+        return g
+
+    def __init__(self, mpx_port=10024):
+        # create mpxstats process
+        self.mpx=Popen(["/usr/local/bin/mpxstats",'-f','flat', '-p', str(mpx_port)],stdout=PIPE)
         self.mpx_stats={}
-        self.port = port
-        self.polling_interval_seconds = polling_interval_seconds
-        self.mpx=subprocess.Popen('/usr/local/bin/mpxstats -f flat -p 10024'.split(' '),stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.fetch_mpxstat()
 
-        self.xrootd_state={
-            "pid":           Gauge("pid_running","XRootD PID"),\
-            "service_state": Enum("service_state","Service State", states=["active", "inactive","activating","deactivating","failed","dead"]),\
-            "service_up":    Gauge("service_up","checks if the service is up"),
-            "inodes":        Gauge("nr_inodes","number of inodes") }
+        # helper lambdas 
+        repl_dots           = lambda st:st.replace(".","_")  #replace dots which are not allowed in prometheus vars
+        run_cmd             = lambda cmd,stdout=PIPE: str(run(cmd,stdout=stdout).stdout,'utf-8').rstrip()
+        get_mpxstat         = lambda key: lambda: self.mpx_stats[key]
+        self.updt_mpx_infos = lambda: self.mpx_infos.info({k:v for k,v in self.mpx_stats.items() if k in info_keys})
+        
+        #filterlist for non float info keys
+        info_keys=["ver","src","pgm",'oss.paths.0.lp','oss.paths.0.rp','ofs.role']
+        desc=f"Description found in XRootD {self.mpx_stats['ver']} monitor manual"
+
+        # generate a list of gauges for all values gathered by mpxstats, bind indirected lambda to access the value every time
+        self.mpx_gauges=[ self.create_gauge(repl_dots(k), desc, get_mpxstat(k)) 
+                         for k in self.mpx_stats.keys() if not k in info_keys ]
+
+        # generate a Info, use updt_mpx_infos to gather newest mpx info data from info_keys
+        self.mpx_infos= Info("xrootd_config_info",desc)
+        self.updt_mpx_infos()
+
+        # additional custom gauges
+        self.xrd_inodes=  self.create_gauge("nr_inodes","number of inodes",
+                                      lambda: run_cmd(['ls','-la',f"/proc/{self.mpx_stats['pid']}/fd/"]).count('\n')+1)
 
     def run_metrics_loop(self):
-        """Metrics fetching loop"""
+        """Endlessly fetch mpxstats"""
 
         while True:
-            start=time.time()
-            while ((time.time() - start) < self.polling_interval_seconds):
-                self.fetch_mpxstat()
-                print(self.mpx_stats)
-            self.fetch()
+            self.fetch_mpxstat()
+            self.updt_mpx_infos()
 
-    def myrun(self, cmd ):
-        result=subprocess.run(cmd.split(' '),stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return str(result.stdout,'utf-8').rstrip()
-
-    def systemctl_property(self,prop="MainPID"):
-        return self.myrun(f"systemctl show --property {prop} --value xrootd@1.service")
-
-
-    def fetch(self):
-        """
-        Get metrics from application and refresh Prometheus metrics with
-        new values.
-        """
-        pid=self.systemctl_property('MainPID')
-        self.xrootd_state['pid'].set(pid)
-        self.xrootd_state['service_state'].state(self.systemctl_property('ActiveState'))
-        self.xrootd_state['inodes'].set(len(self.myrun(f"ls -la /proc/{pid}/fd/").split('\n')))
 
 def main():
     """Main entry point"""
 
-    polling_interval_seconds = int(os.getenv("POLLING_INTERVAL_SECONDS", "5"))
-    my_port = int(os.getenv("XRTOOD_PORT", "1024"))
+    mpx_port = int(os.getenv("MPX_PORT", "10024"))
     exporter_port = int(os.getenv("EXPORTER_PORT", "9090"))
 
-    app_metrics = xrootd_exporter(
-        port=exporter_port,
-        polling_interval_seconds=polling_interval_seconds
-    )
+    xrd_metrics = xrootd_exporter(mpx_port=mpx_port)
     start_http_server(exporter_port)
-    app_metrics.run_metrics_loop()
+    xrd_metrics.run_metrics_loop()
 
 if __name__ == "__main__":
     main()
