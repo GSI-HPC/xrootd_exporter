@@ -11,6 +11,7 @@ class xrootd_exporter:
 
     def fetch_mpxstat(self):
         """Reads the output stream of the mpx process into mpx_stats"""
+        self.verify_mpx_running()
         read_line=lambda:self.mpx.stdout.readline().decode('utf-8').rstrip()
         line=read_line() 
         while line != "":
@@ -23,6 +24,11 @@ class xrootd_exporter:
         g=Gauge(name,desc)
         g.set_function(fx)
         return g
+    
+    def verify_mpx_running(self):
+        self.mpx.poll()
+        rc=self.mpx.returncode
+        if rc!=None: raise Exception(f"mpxstats process has terminated with {rc}")
 
     def __init__(self, mpx_port=10024,mpx_path='/usr/bin/mpxstats'):
         # create mpxstats process
