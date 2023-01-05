@@ -62,8 +62,12 @@ class xrootd_exporter:
         """Endlessly fetch mpxstats"""
 
         while True:
-            self.fetch_mpxstat()
-            self.updt_mpx_infos()
+            try:
+                self.fetch_mpxstat()
+                self.updt_mpx_infos()
+            except Exception as e:
+                self.mpx.kill()
+                raise e
 
 
 def main():
