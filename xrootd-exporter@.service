@@ -1,0 +1,15 @@
+[Unit]
+Description=xrootd exporter instance "%i"
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+User=xrootd
+Type=simple
+ExecStart=python3 /usr/bin/xrootd-exporter.py
+StandardOutput=/var/log/xrootd/xrootd-exporter-%i.log
+StandardError=/var/log/xrootd/xrootd-exporter-%i.log
+TimeoutSec=10
+WorkingDirectory=/var/run/xrootd
+LimitNOFILE=65536
