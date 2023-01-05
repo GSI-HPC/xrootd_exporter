@@ -24,9 +24,9 @@ class xrootd_exporter:
         g.set_function(fx)
         return g
 
-    def __init__(self, mpx_port=10024):
+    def __init__(self, mpx_port=10024,mpx_path='/usr/bin/mpxstats'):
         # create mpxstats process
-        self.mpx=Popen(["/usr/local/bin/mpxstats",'-f','flat', '-p', str(mpx_port)],stdout=PIPE)
+        self.mpx=Popen([mpx_path,'-f','flat', '-p', str(mpx_port)],stdout=PIPE)
         self.mpx_stats={}
         self.fetch_mpxstat()
 
@@ -65,8 +65,9 @@ def main():
 
     mpx_port = int(os.getenv("MPX_PORT", "10024"))
     exporter_port = int(os.getenv("EXPORTER_PORT", "9090"))
+    mpx_path=os.getenv("MPX_PATH","/usr/bin/mpxstats")
 
-    xrd_metrics = xrootd_exporter(mpx_port=mpx_port)
+    xrd_metrics = xrootd_exporter(mpx_port=mpx_port,mpx_path=mpx_path)
     start_http_server(exporter_port)
     xrd_metrics.run_metrics_loop()
 
