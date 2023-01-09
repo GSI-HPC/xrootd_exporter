@@ -24,17 +24,33 @@ class xrootd_exporter:
         g=Gauge(name,desc)
         g.set_function(fx)
         return g
+
+    def get_description(self,name):
+        if name not in self.descs.keys():
+            return f"Refer to description found in the XRootD {self.mpx_stats['ver']} Monitoring manual"
+        return f"{self.descs[name]}"
+
+    def load_descriptions(self,path):
+        with open(path,'r') as file:
+            data=file.read()
+        self.descs={line.split(' ')[0]: (line.split(' ',1)[1]).rstrip()  for line in data.split('\n')[:-1:]} 
+
     
     def verify_mpx_running(self):
         self.mpx.poll()
         rc=self.mpx.returncode
         if rc!=None: raise Exception(f"mpxstats process has terminated with {rc}")
 
-    def __init__(self, mpx_port=10024,mpx_path='/usr/bin/mpxstats'):
+    def __init__(self, mpx_port=10024,mpx_path='/usr/bin/mpxstats',desc_path=""):
         # create mpxstats process
         self.mpx=Popen([mpx_path,'-f','flat', '-p', str(mpx_port)],stdout=PIPE)
         self.mpx_stats={}
         self.fetch_mpxstat()
+        self.descs={}
+
+        # load the descriptions if a path is given
+        if desc_path != "":
+            self.load_descriptions(desc_path)
 
         # helper lambdas 
         repl_dots           = lambda st:st.replace(".","_")  #replace dots which are not allowed in prometheus vars
@@ -44,14 +60,13 @@ class xrootd_exporter:
         
         #filterlist for non float info keys
         info_keys=["ver","src","pgm",'oss.paths.0.lp','oss.paths.0.rp','ofs.role']
-        desc=f"Description found in XRootD {self.mpx_stats['ver']} monitor manual"
 
         # generate a list of gauges for all values gathered by mpxstats, bind indirected lambda to access the value every time
-        self.mpx_gauges=[ self.create_gauge(f"xrd_{repl_dots(k)}", desc, get_mpxstat(k)) 
+        self.mpx_gauges=[ self.create_gauge(f"xrd_{repl_dots(k)}",self.get_description(k) , get_mpxstat(k)) 
                          for k in self.mpx_stats.keys() if not k in info_keys ]
 
         # generate a Info, use updt_mpx_infos to gather newest mpx info data from info_keys
-        self.mpx_infos= Info("xrd_config",desc)
+        self.mpx_infos= Info("xrd_config",' '.join([f"{key}:{self.get_description(key)};" for key in info_keys]))
         self.updt_mpx_infos()
 
         # additional custom gauges
@@ -76,8 +91,9 @@ def main():
     mpx_port = int(os.getenv("MPX_PORT", "10024"))
     exporter_port = int(os.getenv("EXPORTER_PORT", "9090"))
     mpx_path=os.getenv("MPX_PATH","/usr/bin/mpxstats")
+    desc_path=os.getenv("EXPORTER_DESCRIPTION_FILE","")
 
-    xrd_metrics = xrootd_exporter(mpx_port=mpx_port,mpx_path=mpx_path)
+    xrd_metrics = xrootd_exporter(mpx_port=mpx_port,mpx_path=mpx_path,desc_path=desc_path)
     start_http_server(exporter_port)
     xrd_metrics.run_metrics_loop()
 
