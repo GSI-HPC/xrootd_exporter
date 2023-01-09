@@ -40,18 +40,18 @@ class xrootd_exporter:
         repl_dots           = lambda st:st.replace(".","_")  #replace dots which are not allowed in prometheus vars
         run_cmd             = lambda cmd,stdout=PIPE: str(run(cmd,stdout=stdout).stdout,'utf-8').rstrip()
         get_mpxstat         = lambda key: lambda: self.mpx_stats[key]
-        self.updt_mpx_infos = lambda: self.mpx_infos.info({k:v for k,v in self.mpx_stats.items() if k in info_keys})
+        self.updt_mpx_infos = lambda: self.mpx_infos.info({f"xrd_{repl_dots(k)}":v for k,v in self.mpx_stats.items() if k in info_keys})
         
         #filterlist for non float info keys
         info_keys=["ver","src","pgm",'oss.paths.0.lp','oss.paths.0.rp','ofs.role']
         desc=f"Description found in XRootD {self.mpx_stats['ver']} monitor manual"
 
         # generate a list of gauges for all values gathered by mpxstats, bind indirected lambda to access the value every time
-        self.mpx_gauges=[ self.create_gauge(repl_dots(k), desc, get_mpxstat(k)) 
+        self.mpx_gauges=[ self.create_gauge(f"xrd_{repl_dots(k)}", desc, get_mpxstat(k)) 
                          for k in self.mpx_stats.keys() if not k in info_keys ]
 
         # generate a Info, use updt_mpx_infos to gather newest mpx info data from info_keys
-        self.mpx_infos= Info("xrootd_config_info",desc)
+        self.mpx_infos= Info("xrd_config",desc)
         self.updt_mpx_infos()
 
         # additional custom gauges
