@@ -52,7 +52,7 @@ LGPL3 as described in the [License File](./LICENSE)
 
 As for the current scope this exporter is considered completed.
 It implements all summary statistics available via `mpxstats`.
-Even though, a much more advanced exporter based on the [detailed monitoring data format] (https://xrootd.slac.stanford.edu/doc/dev55/xrd_monitoring.htm#_Toc99653748) might prove useful in the future.
+Even though, a much more advanced exporter based on the [detailed monitoring data format](https://xrootd.slac.stanford.edu/doc/dev55/xrd_monitoring.htm#_Toc99653748) might prove useful in the future.
 
 ## Contribution
 
@@ -60,4 +60,4 @@ Feel free to suggest features and report bugs via issues
 
 ## Vagrant setup
 
-A Vagrant/Ansible setup consisting of 2 data servers and grafana/prometheus instance is available [here](https://git.gsi.de/dc/xrootd-monitor)
+A Vagrant/Ansible setup consisting of 2 data servers and grafana/prometheus instance is available [here](https://git.gsi.de/dc/xrootd-monitor).
