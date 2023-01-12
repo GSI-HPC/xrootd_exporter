@@ -44,6 +44,17 @@ When using the [systemd unitfile](./xrootd_exporter@.service) you can easily mod
 Environment=MPX_PATH=/usr/local/bin/mpxstats
 ```
 
+## Vagrant setup
+
+A Vagrant/Ansible setup consisting of 2 data servers and grafana/prometheus instance is available [here](https://github.com/GSI-HPC/xrootd_monitoring_setup).
+
+## Limitations
+
+Right now these limitations exist on the exporter:
+
+1) The exporter can only show field descriptions for the first oss.path and cmsd.node
+2) The exporter will hang until mpxstats has received information at least once
+
 ## License
 
 LGPL3 as described in the [License File](./LICENSE)
@@ -58,6 +69,3 @@ Even though, a much more advanced exporter based on the [detailed monitoring dat
 
 Feel free to suggest features and report bugs via issues
 
-## Vagrant setup
-
-A Vagrant/Ansible setup consisting of 2 data servers and grafana/prometheus instance is available [here](https://github.com/GSI-HPC/xrootd_monitoring_setup).
