@@ -60,4 +60,4 @@ Feel free to suggest features and report bugs via issues
 
 ## Vagrant setup
 
-A Vagrant/Ansible setup consisting of 2 data servers and grafana/prometheus instance is available [here](https://git.gsi.de/dc/xrootd-monitor).
+A Vagrant/Ansible setup consisting of 2 data servers and grafana/prometheus instance is available [here](https://github.com/GSI-HPC/xrootd_monitoring_setup).
