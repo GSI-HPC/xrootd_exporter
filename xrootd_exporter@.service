@@ -7,9 +7,9 @@ WantedBy=multi-user.target
 [Service]
 User=xrootd
 Type=simple
-ExecStart=python3 /usr/bin/xrootd-exporter.py
-StandardOutput=/var/log/xrootd/xrootd-exporter-%i.log
-StandardError=/var/log/xrootd/xrootd-exporter-%i.log
+ExecStart=python3 /usr/bin/xrootd_exporter.py
+StandardOutput=/var/log/xrootd/xrootd_exporter-%i.log
+StandardError=/var/log/xrootd/xrootd_exporter-%i.log
 TimeoutSec=10
 WorkingDirectory=/var/run/xrootd
 LimitNOFILE=65536

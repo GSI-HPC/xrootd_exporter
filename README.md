@@ -15,10 +15,10 @@ A optional [file](./descriptions.cfg) containing descriptions for metrics is pro
 The process can be started by 
 
 ```
-python3 /path/to/xrootd-exporter.py
+python3 /path/to/xrootd_exporter.py
 ```
 
-Alternatively, a [systemd unitfile](./xrootd-exporter@.service) is provided.
+Alternatively, a [systemd unitfile](./xrootd_exporter@.service) is provided.
 
 ### XRootD 
 
@@ -38,7 +38,7 @@ On startup, xrootd_exporter.py looks for 4 optional environmental variables:
 3) `EXPORTER_PORT` defines the TCP listening port of the exporter's prometheus web server, the default is 9090
 4) `EXPORTER_DESCRIPTION_FILE` defines the path to [file containing metric descriptions](./descriptions.cfg)
 
-When using the [systemd unitfile](./xrootd-exporter@.service) you can easily modify the service by adding
+When using the [systemd unitfile](./xrootd_exporter@.service) you can easily modify the service by adding
 
 ```
 Environment=MPX_PATH=/usr/local/bin/mpxstats
