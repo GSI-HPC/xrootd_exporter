@@ -55,6 +55,17 @@ Right now these limitations exist on the exporter:
 1) The exporter can only show field descriptions for the first oss.path and cmsd.node
 2) The exporter will hang until mpxstats has received information at least once
 
+## Rocky8 RPM build container
+
+Use the Containerfile with podman to package the exporter into a rpm using:
+
+```
+podman build -t xrootd_exporter .
+podman run -v ./:/rpm -it xrootd_exporter
+```
+
+The el8 rpm will then be stored the repostiroy directory.
+
 ## License
 
 LGPL3 as described in the [License File](./LICENSE)
