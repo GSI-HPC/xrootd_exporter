@@ -58,8 +58,8 @@ class xrootd_exporter:
         get_mpxstat         = lambda key: lambda: self.mpx_stats[key]
         self.updt_mpx_infos = lambda: self.mpx_infos.info({f"xrd_{repl_dots(k)}":v for k,v in self.mpx_stats.items() if k in info_keys})
         
-        #filterlist for non float info keys
-        info_keys=["ver","src","pgm",'oss.paths.0.lp','oss.paths.0.rp','ofs.role']
+        # filterlist for non number info keys
+        info_keys=[ k for k,v in self.mpx_stats.items() if not v.isdigit() ]
 
         # generate a list of gauges for all values gathered by mpxstats, bind indirected lambda to access the value every time
         self.mpx_gauges=[ self.create_gauge(f"xrd_{repl_dots(k)}",self.get_description(k) , get_mpxstat(k)) 
